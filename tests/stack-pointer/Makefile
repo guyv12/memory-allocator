@@ -1,6 +1,6 @@
 # Makefile for C/Assembly program
 
-TARGET = stack
+TARGET = stack.exe
 C_SOURCE = main.c
 ASM_SOURCE = stack.s
 C_OBJECT = $(C_SOURCE:.c=.o)
