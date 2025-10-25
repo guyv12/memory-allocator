@@ -18,6 +18,7 @@ stack_test:
     call malloc
 
     mov rsp, rax # move rsp to newly allocated stack
+    add rsp, 1000 # to the end
 
     mov rdi, 0
     mov rsi, 0
@@ -25,7 +26,7 @@ stack_test:
     mov rcx, 0
     mov r8, 0
     mov r9, 0
-    push rbx
+    push rbx # 7 args to have smth to push with fastcall
     call fastcall_adder
     
     mov rsp, r12 # restore old rsp

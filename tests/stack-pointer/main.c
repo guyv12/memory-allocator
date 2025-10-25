@@ -10,10 +10,10 @@ void fastcall_adder(int a, int b, int c, int d, int e, int f, int *p)
 
 int main()
 {
-    int a = 0;
+    int a = 10;
     stack_test(&a);
 
-    printf("a: %d", a);
+    printf("a: %d\n", a);
 
     return 0;
 }
