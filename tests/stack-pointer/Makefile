@@ -24,3 +24,6 @@ $(ASM_OBJECT): $(ASM_SOURCE)
 .PHONY: clean
 clean:
 	rm -f $(C_OBJECT) $(ASM_OBJECT) $(TARGET)
+
+
+# (gemini generated)

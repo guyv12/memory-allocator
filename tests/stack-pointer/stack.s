@@ -1,7 +1,7 @@
 .global stack_test
+
 .extern malloc
-.extern exit
-.extern fastcall_adder  # Declare the external C function
+.extern fastcall_adder
 
 .text
 .intel_syntax noprefix
