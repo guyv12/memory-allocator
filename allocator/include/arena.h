@@ -6,20 +6,25 @@
 
 #include <stdlib.h>
 
+#define ARENA_SUCCESS 0
+#define ARENA_ERROR -1
 
 typedef struct MyArena MyArena;
 
 struct MyArena
 {
-    void *mem;
-    size_t sp;
+    void *_mem;
+    void *_sp;
+
+    size_t _size;
+    size_t _capacity;
 };
 
 
-void InitArena(MyArena *restrict arena, const size_t size);
+int InitArena(MyArena *restrict __arena, const size_t __size);
 
-void FreeArena(MyArena *arena);
+int FreeArena(MyArena *__arena);
 
-void ArenaPush(MyArena *const arena, void *data);
+int ArenaPush(MyArena *const __arena, void *__data, size_t __size);
 
 #endif // my_arena_h
