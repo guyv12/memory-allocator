@@ -1,3 +1,0 @@
-/home/guy842/Dev/uni/semester-5/system-software/allocator/build/CMakeFiles/Allocator.dir
-/home/guy842/Dev/uni/semester-5/system-software/allocator/build/CMakeFiles/edit_cache.dir
-/home/guy842/Dev/uni/semester-5/system-software/allocator/build/CMakeFiles/rebuild_cache.dir

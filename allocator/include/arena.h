@@ -6,8 +6,9 @@
 
 #include <stdlib.h>
 
-#define ARENA_SUCCESS 0
-#define ARENA_ERROR -1
+#define ARENA_SUCCESS (0)
+#define ARENA_ERROR (-1)
+#define ARENA_FAIL ((void *)-1)
 
 typedef struct MyArena MyArena;
 
@@ -25,6 +26,6 @@ int InitArena(MyArena *restrict __arena, const size_t __size);
 
 int FreeArena(MyArena *__arena);
 
-int ArenaPush(MyArena *const __arena, void *__data, size_t __size);
+void *ArenaAllocate(MyArena *const __arena, size_t __size);
 
 #endif // my_arena_h

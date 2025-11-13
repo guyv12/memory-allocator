@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/Allocator.dir/link.d CMakeFiles/Allocator.dir/src/arena.c.o CMakeFiles/Allocator.dir/tests/general_use.c.o -o Allocator
