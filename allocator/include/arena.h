@@ -6,19 +6,21 @@
 
 #include <stdlib.h>
 
-#define ARENA_SUCCESS (0)
-#define ARENA_ERROR (-1)
-#define ARENA_FAIL ((void *)-1)
+#define ARENA_SUCCESS (0)                 // <-- success bin signal
+#define ARENA_ERROR (-1)                  // <-- fail bin signal
+#define ARENA_FAIL ((void *)-1)           // <-- failed pointer value
+
+#define ARENA_SIZE_THRESHOLD (128 * 1024) // <-- when to change from brk() to mmap()
 
 typedef struct MyArena MyArena;
 
 struct MyArena
 {
-    void *_mem;
-    void *_sp;
+    void *_mem;         // pointer to start of the available memory block
+    void *_sp;          // pointer to the top of the arena
 
-    size_t _size;
-    size_t _capacity;
+    size_t _size;       // current arena size 
+    size_t _capacity;   // current capacity - to grow exponentially like a vector would
 };
 
 
