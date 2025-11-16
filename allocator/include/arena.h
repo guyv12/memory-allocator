@@ -30,4 +30,7 @@ int FreeArena(MyArena *__arena);
 
 void *ArenaAllocate(MyArena *const __arena, size_t __size);
 
+// -- helper --
+size_t next2_power(size_t x);
+
 #endif // my_arena_h
