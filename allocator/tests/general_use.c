@@ -1,30 +1,34 @@
 #include "arena.h"
 #include <stdio.h>
 
-typedef struct SampleStruct SampleStruct;
-
-struct SampleStruct
+typedef struct SampleStruct
 {
         int d;
         float f;
         char c[10];
-};
+}
+SampleStruct;
 
 int main(int argc, char *argv[])
 {
-    MyArena Arena;
+    ArenaAllocator Arena;
 
-    InitArena(&Arena, 20);
+    arcreate(&Arena, 20, ARENA_GROW);
 
-    SampleStruct *my_struct = (SampleStruct *)ArenaAllocate(&Arena, sizeof(SampleStruct));
+    SampleStruct *my_struct = (SampleStruct *)aralloc(&Arena, sizeof(SampleStruct));
     my_struct->d = 10; my_struct->f = 0.5; my_struct->c[0] = 'a';
     printf("%d, %f, %s\n", my_struct->d, my_struct->f, my_struct->c);
 
-    my_struct = ArenaAllocate(&Arena, sizeof(SampleStruct));
+    size_t sub_mark = armark(&Arena);
+    my_struct = aralloc(&Arena, sizeof(SampleStruct));
     my_struct->d = 20; my_struct->f = 2.0; my_struct->c[0] = 'b';
     printf("%d, %f, %s\n", my_struct->d, my_struct->f, my_struct->c);
 
-    FreeArena(&Arena);
+    arrollback(&Arena, sub_mark);
+    double *arr = aralloc(&Arena, 2 * sizeof(double));
+    printf("%lf, %lf\n", arr[0], arr[1]);
+
+    ardestroy(&Arena);
     
     return 0;
 }

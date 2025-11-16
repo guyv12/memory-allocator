@@ -8,63 +8,53 @@
 
 //--------------- CONSTS ---------------
 
-#define ARENA_SUCCESS (0)                 // <-- success bin signal
-#define ARENA_ERROR (-1)                  // <-- fail bin signal
-#define ARENA_FAIL ((void *)-1)           // <-- failed pointer value
-
-#define ARENA_SIZE_THRESHOLD (128 * 1024) // <-- when to change from brk() to mmap()
+#define ARBRK_THRESHOLD (128 * 1024) // <-- when to change from brk() to mmap()
 
 
 //--------------- FLAGS ----------------
 
-typedef enum ArenaFlags ArenaFlags;
-
-enum ArenaFlags
+typedef enum ArenaFlags
 {
-    ARENA_GROW          = 0,      // enable exponential growth
-    ARENA_SIZE_ALIGN    = 1 << 0, // align capacity to the next power of 2
-};
+    ARENA_GROW          = 1 << 0, // enable exponential growth
+    ARENA_SIZE_ALIGN    = 1 << 1, // align capacity to the next power of 2
+}
+ArenaFlags;
 
 
 //--------------- ARENA ----------------
 
-typedef struct Arena Arena;
-
-struct Arena
+typedef struct ArenaAllocator
 {
-    void *_mem;         // pointer to start of the available memory block
-    void *_sp;          // pointer to the top of the arena
+    void *mem;         // pointer to start of the available memory block
+    void *sp;          // pointer to the top of the arena
 
-    size_t _size;       // current arena size 
-    size_t _capacity;   // current capacity - to grow exponentially like a vector would
+    size_t size;       // size of the data allocated on the arena
+    size_t capacity;   // size of the arena's allocated memory region
     
     ArenaFlags flags;
-};
-
-int InitArena(Arena *restrict __arena, const size_t __size, ArenaFlags __flags);
-
-int FreeArena(Arena *__arena);
-
-void *ArenaAllocate(Arena *const __arena, size_t __size);
+}
+ArenaAllocator;
 
 
-//------------- SUB ARENA --------------
+/* Initializes an arena metadata struct, allocates with brk() syscall when below ARBRK_THRESHOLD, and with mmap() otherwise. */
+int arcreate(ArenaAllocator *restrict __arena, const size_t __size, ArenaFlags __flags);
 
-struct SubArena
-{
-    Arena *main_arena;
+/* Destroys an arena, reclaiming allocated region back to the kernel. */
+int ardestroy(ArenaAllocator *__arena);
 
-    void *_mem;
-    void *_sp;
-    size_t _size;
-};
+/* Allocates new object on the arena. */
+void* aralloc(ArenaAllocator *const __arena, size_t __size);
 
-void *ArenaMakeSub(Arena *const __arena, size_t __size);
+/* Marks a new sub-arena beggining. */
+size_t armark(ArenaAllocator *const __arena);
 
-int ArenaFreeSub();
+/* Rollbacks to the previous mark point, removing the sub-arena. */
+int arrollback(ArenaAllocator *const __arena, size_t __sub_mark);
+
 
 //-------------- HELPERS ---------------
 
 size_t next2_power(size_t x);
+
 
 #endif // my_arena_h

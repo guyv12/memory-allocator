@@ -1,61 +1,91 @@
+#define _GNU_SOURCE
+
 #include "arena.h"
 
 #include <sys/mman.h>
+#include <errno.h>
 #include <limits.h>
 #include <stdint.h>
+#include <string.h>
+
+#if defined(__linux__) && defined(__GLIBC__)
+#define MREMAP_AVAIL 1
+#endif
 
 
 //--------------- ARENA ----------------
 
-int InitArena(Arena *restrict __arena, const size_t __size, ArenaFlags __flags)
+int arcreate(ArenaAllocator *restrict __arena, const size_t __size, ArenaFlags __flags)
+/* @Return  0 on success, -1 on failure */
 {
     __arena->flags = __flags;
 
     size_t alloc_size = (__arena->flags & ARENA_SIZE_ALIGN) ? next2_power(__size) : __size;
-    __arena->_mem = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-    if (__arena->_mem == MAP_FAILED)
-        return ARENA_ERROR;
 
-    __arena->_sp = __arena->_mem;
-    __arena->_size = 0; __arena->_capacity = alloc_size;
+    // if (alloc_size < ARBRK_THRESHOLD)
+    // {
+    //     // brk()
+    // }
 
-    return ARENA_SUCCESS;
+    __arena->mem = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+    if (__arena->mem == MAP_FAILED)
+        return -1;
+
+    __arena->sp = __arena->mem;
+    __arena->size = 0; __arena->capacity = alloc_size;
+
+    return 0;
 }
 
-int FreeArena(Arena *const __arena)
+int ardestroy(ArenaAllocator *const __arena)
+/* @Return 0 on success -1 on failure */
 {
-    munmap(__arena->_mem, __arena->_capacity);
-    return ARENA_SUCCESS;
+    munmap(__arena->mem, __arena->capacity);
+    return 0;
 }
 
 
-void *ArenaAllocate(Arena *const __arena, size_t __size)
+void *aralloc(ArenaAllocator *const __arena, size_t __size)
+/* @Return pointer to the allocated mem region on success, NULL on failure */
 {
-    if (__arena->_size + __size > __arena->_capacity) 
+    if (__arena->size + __size > __arena->capacity) 
     {
-        if (!(__arena->flags & ARENA_GROW)) return ARENA_FAIL;
+        if (!(__arena->flags & ARENA_GROW)) return NULL;
 
-        void *new_mapping = mremap(__arena->_mem, __arena->_capacity, __arena->_capacity *= 2, MREMAP_MAYMOVE);
-        if (new_mapping == MAP_FAILED) return ARENA_FAIL;
+        #ifdef MREMAP_AVAIL
+            void *new_mapping = mremap(__arena->mem, __arena->capacity, __arena->capacity *= 2, MREMAP_MAYMOVE);
+            if (new_mapping == MAP_FAILED) return NULL;
+        #else
+            size_t old_capacity = __arena->capacity;    
+            void *new_mapping = mmap(NULL, __arena->capacity *= 2, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+            if (new_mapping == MAP_FAILED) return NULL;
+            memcpy(new_mapping, __arena->mem, __arena->size);
+            munmap(__arena->mem, old_capacity); // deactivate old
+        #endif
 
-        __arena->_mem = new_mapping; __arena->_sp = __arena->_mem;
+        __arena->mem = new_mapping; __arena->sp = __arena->mem;
     }
 
-    __arena->_size += __size; __arena->_sp = ((uint8_t *)__arena->_mem + __arena->_size); 
-    return __arena->_sp; // return the address of the allocated part
+    __arena->size += __size; __arena->sp = ((uint8_t *)__arena->mem + __arena->size); 
+    return __arena->sp; // return the address of the allocated part
 }
 
 
-//------------- SUB ARENA --------------
-
-void *ArenaMakeSub(Arena *const __arena, size_t __size)
+size_t armark(ArenaAllocator *const __arena)
 {
+    return (uint8_t *)__arena->sp - (uint8_t *)__arena->mem;
+}
+
+
+int arrollback(ArenaAllocator *const __arena, size_t __mark_point)
+/* @Return 0 on success, -1 on failure */
+{
+    if (__arena->capacity < __mark_point)
+        return -1; // mark_point not in the arena pool
     
-}
-
-int ArenaFreeSub()
-{
-
+    __arena->sp = (uint8_t *)__arena->mem + __mark_point;
+    __arena->size = __mark_point;
+    return 0;
 }
 
 
