@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "mman-shared.h": "c",
+        "string.h": "c",
+        "stdint.h": "c"
+    }
+}
