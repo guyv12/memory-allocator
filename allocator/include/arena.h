@@ -6,10 +6,6 @@
 
 #include <stdlib.h>
 
-//--------------- CONSTS ---------------
-
-#define ARBRK_THRESHOLD (128 * 1024) // <-- when to change from brk() to mmap()
-
 
 //--------------- FLAGS ----------------
 

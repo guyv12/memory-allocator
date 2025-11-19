@@ -22,11 +22,6 @@ int arcreate(ArenaAllocator *restrict __arena, const size_t __size, ArenaFlags _
 
     size_t alloc_size = (__arena->flags & ARENA_SIZE_ALIGN) ? next2_power(__size) : __size;
 
-    // if (alloc_size < ARBRK_THRESHOLD)
-    // {
-    //     // brk()
-    // }
-
     __arena->mem = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
     if (__arena->mem == MAP_FAILED)
         return -1;
@@ -66,8 +61,10 @@ void *aralloc(ArenaAllocator *const __arena, size_t __size)
         __arena->mem = new_mapping; __arena->sp = __arena->mem;
     }
 
-    __arena->size += __size; __arena->sp = ((uint8_t *)__arena->mem + __arena->size); 
-    return __arena->sp; // return the address of the allocated part
+    void *addr = __arena->sp;
+    __arena->size += __size; __arena->sp = ((uint8_t *)__arena->mem + __arena->size);
+
+    return addr;
 }
 
 
