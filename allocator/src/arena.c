@@ -15,7 +15,8 @@
 
 //--------------- ARENA ----------------
 
-int arcreate(ArenaAllocator *restrict __arena, const size_t __size, ArenaFlags __flags)
+int
+arcreate(ArenaAllocator *restrict __arena, const size_t __size, ArenaFlags __flags)
 /* @Return  0 on success, -1 on failure */
 {
     __arena->flags = __flags;
@@ -32,7 +33,8 @@ int arcreate(ArenaAllocator *restrict __arena, const size_t __size, ArenaFlags _
     return 0;
 }
 
-int ardestroy(ArenaAllocator *const __arena)
+int
+ardestroy(ArenaAllocator *restrict const __arena)
 /* @Return 0 on success -1 on failure */
 {
     munmap(__arena->mem, __arena->capacity);
@@ -40,7 +42,8 @@ int ardestroy(ArenaAllocator *const __arena)
 }
 
 
-void *aralloc(ArenaAllocator *const __arena, size_t __size)
+void *
+aralloc(ArenaAllocator *restrict const __arena, size_t __size)
 /* @Return pointer to the allocated mem region on success, NULL on failure */
 {
     if (__arena->size + __size > __arena->capacity) 
@@ -68,13 +71,15 @@ void *aralloc(ArenaAllocator *const __arena, size_t __size)
 }
 
 
-size_t armark(ArenaAllocator *const __arena)
+size_t
+armark(ArenaAllocator *restrict const __arena)
 {
     return (uint8_t *)__arena->sp - (uint8_t *)__arena->mem;
 }
 
 
-int arrollback(ArenaAllocator *const __arena, size_t __mark_point)
+int
+arrollback(ArenaAllocator *restrict const __arena, size_t __mark_point)
 /* @Return 0 on success, -1 on failure */
 {
     if (__arena->capacity < __mark_point)
@@ -88,7 +93,8 @@ int arrollback(ArenaAllocator *const __arena, size_t __mark_point)
 
 //-------------- HELPERS ---------------
 
-size_t next2_power(size_t x)
+size_t
+next2_power(size_t x)
 {
     if (x <= 1) return 1;
     
