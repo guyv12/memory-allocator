@@ -5,7 +5,8 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <limits.h>
-#include <stdint.h>
+#include <stdalign.h>
+#include <stddef.h>
 #include <string.h>
 
 #if defined(__linux__) && defined(__GLIBC__)
@@ -23,7 +24,7 @@ arcreate(ArenaAllocator *restrict __arena, const size_t __size, ArenaFlags __fla
 
     size_t alloc_size = (__arena->flags & ARENA_SIZE_ALIGN) ? next2_power(__size) : __size;
 
-    __arena->mem = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+    __arena->mem = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     if (__arena->mem == MAP_FAILED)
         return -1;
 
@@ -32,6 +33,7 @@ arcreate(ArenaAllocator *restrict __arena, const size_t __size, ArenaFlags __fla
 
     return 0;
 }
+
 
 int
 ardestroy(ArenaAllocator *restrict const __arena)
@@ -50,24 +52,36 @@ aralloc(ArenaAllocator *restrict const __arena, size_t __size)
     {
         if (!(__arena->flags & ARENA_GROW)) return NULL;
 
-        #ifdef MREMAP_AVAIL
-            void *new_mapping = mremap(__arena->mem, __arena->capacity, __arena->capacity *= 2, MREMAP_MAYMOVE);
-            if (new_mapping == MAP_FAILED) return NULL;
-        #else
-            size_t old_capacity = __arena->capacity;    
-            void *new_mapping = mmap(NULL, __arena->capacity *= 2, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-            if (new_mapping == MAP_FAILED) return NULL;
-            memcpy(new_mapping, __arena->mem, __arena->size);
-            munmap(__arena->mem, old_capacity); // deactivate old
-        #endif
-
-        __arena->mem = new_mapping; __arena->sp = __arena->mem;
+        grow_arena(__arena, __size);
     }
 
     void *addr = __arena->sp;
-    __arena->size += __size; __arena->sp = ((uint8_t *)__arena->mem + __arena->size);
+    __arena->size += __size;
+    __arena->sp = ((uint8_t *)__arena->mem + __arena->size);
 
     return addr;
+}
+
+
+void *
+aligned_aralloc(ArenaAllocator *restrict const __arena, size_t __alignment, size_t __size)
+/* @Return aligned pointer to the allocated mem region on success, NULL on failure */
+{
+    void *aligned_addr = align_address(__arena->sp, __alignment);
+    size_t padding = (uintptr_t)aligned_addr - (uintptr_t)__arena->sp;
+
+    if (__arena->size + __size + padding > __arena->capacity) 
+    {
+        if (!(__arena->flags & ARENA_GROW)) return NULL;
+
+        grow_arena(__arena, __size + padding);
+        aligned_addr = align_address(__arena->sp, __alignment); // growth can move the ptrs
+    }
+
+    __arena->size += __size + padding;
+    __arena->sp = ((uint8_t *)__arena->mem + __arena->size);
+
+    return aligned_addr;
 }
 
 
@@ -114,4 +128,29 @@ next2_power(size_t x)
     #endif
 
     return ++x;
+}
+
+
+int
+grow_arena(ArenaAllocator *restrict const __arena, size_t __new_elem_size)
+/* @Return 0 on success -1 on failure */
+{
+    size_t new_capacity = next2_power(__arena->capacity + __new_elem_size);
+
+    #ifdef MREMAP_AVAIL
+        void *new_mapping = mremap(__arena->mem, __arena->capacity, new_capacity, MREMAP_MAYMOVE);
+        if (new_mapping == MAP_FAILED) return -1;
+    #else
+        size_t old_capacity = __arena->capacity;    
+        void *new_mapping = mmap(NULL, new_capacity PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+        if (new_mapping == MAP_FAILED) return -1;
+        memcpy(new_mapping, __arena->mem, __arena->size);
+        munmap(__arena->mem, old_capacity); // deactivate old
+    #endif
+
+    __arena->capacity = new_capacity;
+
+    __arena->mem = new_mapping;
+    __arena->sp = ((uint8_t *)__arena->mem + __arena->size);
+    return 0;
 }

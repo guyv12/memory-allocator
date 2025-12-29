@@ -5,6 +5,7 @@
 
 
 #include <stdlib.h>
+#include <stdint.h>
 
 
 //--------------- FLAGS ----------------
@@ -44,6 +45,10 @@ ardestroy(ArenaAllocator *__arena);
 void*
 aralloc(ArenaAllocator *const __arena, size_t __size);
 
+/* Allocates new object on the arena, and aligns the pointer. */
+void *
+aligned_aralloc(ArenaAllocator *restrict const __arena, size_t __alignment, size_t __size);
+
 /* Marks a new sub-arena beggining. */
 size_t
 armark(ArenaAllocator *const __arena);
@@ -57,6 +62,15 @@ arrollback(ArenaAllocator *const __arena, size_t __sub_mark);
 
 size_t 
 next2_power(size_t x);
+
+int
+grow_arena(ArenaAllocator *restrict const __arena, size_t __new_elem_size);
+
+static inline void *
+align_address(void *__addr, size_t __alignment)
+{
+    return (void *)(((uintptr_t)__addr + __alignment - 1) & ~(__alignment - 1)); 
+}
 
 
 #endif // my_arena_h
