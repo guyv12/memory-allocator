@@ -32,6 +32,8 @@ typedef struct mem_chunk_free_t
 }
 mem_chunk_free_t;
 
+#define MIN_CHUNK_PAYLOAD sizeof(mem_chunk_free_t) // we need the chunk to be able to hold the free metadata after free
+
 // Since we keep 3 lsbs for flags we need to ignore them here
 static __always_inline uint32_t
 payload_size(mem_chunk_t *__metadata) { return __metadata->_payload_size & (~7); }
@@ -71,7 +73,7 @@ typedef struct mem_heap_dynamic_t
     mem_arena_t *ar_ptr; // not used
     
     uint32_t payload_size;
-    uint32_t avail;
+    void *top;
 
     mem_chunk_free_t *free_head; // get rid of arena implemented?
     mem_chunk_free_t *free_tail;
@@ -82,6 +84,9 @@ mem_heap_dynamic_t;
 
 static __always_inline void *
 memory(mem_heap_dynamic_t *__heap) { return (void *)(__heap + 1); } // the memory after heap metadata
+
+static __always_inline size_t
+avail(mem_heap_dynamic_t *__heap) { return __heap->payload_size - (uintptr_t)__heap->top; }
 
 mem_heap_dynamic_t *
 new_dynamic_heap(mem_arena_t *const __arena);

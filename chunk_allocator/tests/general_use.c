@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     pthread_t worker;
     pthread_create(&worker, NULL, thread_func, NULL);
 
-    //thread_func(NULL);
+    thread_func(NULL);
 
     pthread_join(worker, NULL);
 

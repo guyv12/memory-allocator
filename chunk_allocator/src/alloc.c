@@ -47,7 +47,7 @@ new_dynamic_heap(mem_arena_t *const __arena)
     new_heap->ar_ptr = __arena;
 
     new_heap->payload_size = DYNAMIC_HEAP_SIZE;
-    new_heap->avail = DYNAMIC_HEAP_SIZE;
+    new_heap->top = memory(new_heap);
 
     new_heap->free_head = NULL;
     new_heap->free_tail = NULL;
@@ -125,7 +125,8 @@ tlalloc(size_t __size)
     if (tl_heap.main == NULL && tl_heap.dynamic == NULL)
         init_tl_heap();
 
-    __size = align8(__size); // we need to align size to divisible by 8 to store flags
+    // we need to align size to divisible by 8 to store flags and extend to min payload size
+    __size = align8(__size < MIN_CHUNK_PAYLOAD ? MIN_CHUNK_PAYLOAD : __size);
 
     mem_chunk_t *chunk = NULL;
     size_t total_alloc = sizeof(mem_chunk_t) + __size;
@@ -161,12 +162,11 @@ tlalloc(size_t __size)
     {
         // first search free list ...
         
-        if (tl_heap.dynamic->avail < __size) return NULL;
+        if (avail(tl_heap.dynamic) < __size) return NULL;
 
-        uint8_t *base = (uint8_t *)memory(tl_heap.dynamic);
-        chunk = (mem_chunk_t *)(base + (tl_heap.dynamic->payload_size - tl_heap.dynamic->avail));
+        chunk = (mem_chunk_t *)tl_heap.dynamic->top;
 
-        tl_heap.dynamic->avail -= __size;
+        tl_heap.dynamic->top = (uint8_t *)chunk + total_alloc;
 
         chunk->_payload_size = __size | 4 | 1; // arena and in_use flags
 
