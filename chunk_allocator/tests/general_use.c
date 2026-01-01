@@ -40,5 +40,12 @@ int main(int argc, char *argv[])
 
     pthread_join(worker, NULL);
 
+    int *p = tlalloc(50 * 1024 * sizeof(int)); // large alloc
+    
+    p[50 * 1023] = 123;
+    printf("%d\n", p[50 * 1023]);
+    
+    tlfree(p);
+
     return 0;
 }

@@ -48,6 +48,9 @@ mmaped(mem_chunk_t *__metadata) { return __metadata->_payload_size & ((uint32_t)
 static __always_inline bool
 in_use(mem_chunk_t *__metadata) { return __metadata->_payload_size & ((uint32_t)1); }
 
+int
+adjacent(mem_chunk_free_t *__chunk1, mem_chunk_free_t *__chunk2);
+
 
 //--------------- ARENA ----------------
 
@@ -76,7 +79,6 @@ typedef struct mem_heap_dynamic_t
     void *top;
 
     mem_chunk_free_t *free_head; // get rid of arena implemented?
-    mem_chunk_free_t *free_tail;
 }
 mem_heap_dynamic_t;
 
@@ -103,7 +105,6 @@ typedef struct mem_heap_main_t
     void *top;
 
     mem_chunk_free_t *free_head;
-    mem_chunk_free_t *free_tail;
 }
 mem_heap_main_t;
 
@@ -128,8 +129,15 @@ init_tl_heap();
 void
 destroy_tl_heap();
 
+void *
+find_free_chunk(size_t __size);
+
+void
+coalesce_free_chunks();
+
 
 #define BRK_THRESHOLD (128 * 1024)
+
 
 void *
 tlalloc(size_t __size);
