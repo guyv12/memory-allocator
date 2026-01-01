@@ -4,7 +4,7 @@ project(Allocator VERSION 0.5 LANGUAGES C)
 
 
 add_executable(Allocator
-    src/arena.c
+    src/alloc.c
     tests/general_use.c
 )
 
