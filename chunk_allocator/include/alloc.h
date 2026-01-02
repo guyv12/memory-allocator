@@ -38,7 +38,7 @@ mem_chunk_free_t;
 static __always_inline uint32_t
 payload_size(mem_chunk_t *__metadata) { return __metadata->_payload_size & (~7); }
 
-// Flags
+// Flag retrieval
 static __always_inline bool
 allocated_arena(mem_chunk_t *__metadata) { return __metadata->_payload_size & ((uint32_t)4); }
 
@@ -48,8 +48,12 @@ mmaped(mem_chunk_t *__metadata) { return __metadata->_payload_size & ((uint32_t)
 static __always_inline bool
 in_use(mem_chunk_t *__metadata) { return __metadata->_payload_size & ((uint32_t)1); }
 
-int
+// Free list helpers / inserts
+bool
 adjacent(mem_chunk_free_t *__chunk1, mem_chunk_free_t *__chunk2);
+
+void
+merge_free_chunks(mem_chunk_free_t *__left_chunk, mem_chunk_free_t *__right_chunk);
 
 
 //--------------- ARENA ----------------
@@ -133,7 +137,7 @@ void *
 find_free_chunk(size_t __size);
 
 void
-coalesce_free_chunks();
+free_list_insert(mem_chunk_free_t *__freed_chunk);
 
 
 #define BRK_THRESHOLD (128 * 1024)
