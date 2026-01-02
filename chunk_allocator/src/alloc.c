@@ -17,6 +17,35 @@
 __thread mem_heap_info_t tl_heap;
 
 
+
+//--------- CHUNK METADATA -------------
+
+bool
+adjacent(mem_chunk_free_t *__left_chunk, mem_chunk_free_t *__right_chunk)
+{
+    return
+    (
+        (uintptr_t)__left_chunk + sizeof(mem_chunk_t) + payload_size(&__left_chunk->meta)
+        ==
+        (uintptr_t)__right_chunk
+    );
+}
+
+
+void
+merge_free_chunks(mem_chunk_free_t *__left_chunk, mem_chunk_free_t *__right_chunk)
+{      
+    __left_chunk->meta._payload_size = payload_size(&__left_chunk->meta) +
+                                       payload_size(&__right_chunk->meta) +
+                                       sizeof(mem_chunk_free_t); // the mid-header
+    __left_chunk->meta._payload_size |= (__right_chunk->meta._payload_size & 7); // keep the flags (both SHOULD have the same - so or with this untouched)
+    
+    __left_chunk->fd = __right_chunk->fd;
+    if (__right_chunk->fd)
+        __right_chunk->fd->bk = __left_chunk;
+}
+
+
 //--------------- ARENA ----------------
 
 int
@@ -50,7 +79,6 @@ new_dynamic_heap(mem_arena_t *const __arena)
     new_heap->top = memory(new_heap);
 
     new_heap->free_head = NULL;
-    new_heap->free_tail = NULL;
 
     #ifdef TLALLOC_DEBUG
         printf("CREATED DYNAMIC HEAP\n");
@@ -87,7 +115,6 @@ init_tl_heap()
         main_heap_meta.top = main_heap_meta.base;
 
         main_heap_meta.free_head = NULL;
-        main_heap_meta.free_tail = NULL;
 
         tl_heap.main = &main_heap_meta;
         tl_heap.dynamic = NULL;
@@ -120,6 +147,77 @@ destroy_tl_heap()
 
 
 void *
+find_free_chunk(size_t __size)
+{
+    mem_chunk_free_t *current;
+    mem_chunk_free_t *head;
+    if (tl_heap.main) head = tl_heap.main->free_head;
+    else if (tl_heap.dynamic) head = tl_heap.dynamic->free_head;
+    
+    for (current = head; current; current = current->fd)
+    {
+        if (payload_size(&current->meta) >= __size)
+        {
+            if (current->bk)
+                current->bk->fd = current->fd;
+
+            if (current->fd)
+                current->fd->bk = current->bk;
+
+            #ifdef TLALLOC_DEBUG
+                printf("FREE CHUNK REUSED\n");
+            #endif
+
+            return current;
+        }
+    }
+
+    #ifdef TLALLOC_DEBUG
+        printf("SUFFICIENT FREE CHUNK NOT FOUND\n");
+    #endif
+
+    return NULL;
+}
+
+
+void
+free_list_insert(mem_chunk_free_t *__freed_chunk)
+{
+    mem_chunk_free_t *next;
+    if (tl_heap.main) 
+    {
+        next = tl_heap.main->free_head;
+        if (!next) { tl_heap.main->free_head = __freed_chunk; return; }
+    }
+    else if (tl_heap.dynamic)
+    {
+        next = tl_heap.dynamic->free_head;
+        if (!next) { tl_heap.dynamic->free_head = __freed_chunk; return; }
+    }
+
+    mem_chunk_free_t *prev = NULL;
+
+    // I want to know that prev is the chunk on the left of __freed_chunk
+    while((uintptr_t)prev < (uintptr_t)__freed_chunk && next)
+    {
+        prev = next;
+        next = next->fd;
+    }
+    
+
+    // we know that bk exists cuz we resolve empty list elsewhere
+    __freed_chunk->bk = prev;
+    __freed_chunk->fd = next;
+
+    if (prev && adjacent(prev, __freed_chunk))
+        merge_free_chunks(prev, __freed_chunk);
+
+    if (next && adjacent(__freed_chunk, next))
+        merge_free_chunks(__freed_chunk, next);
+}
+
+
+void *
 tlalloc(size_t __size)
 {
     if (tl_heap.main == NULL && tl_heap.dynamic == NULL)
@@ -130,6 +228,8 @@ tlalloc(size_t __size)
 
     mem_chunk_t *chunk = NULL;
     size_t total_alloc = sizeof(mem_chunk_t) + __size;
+
+
     if (__size > BRK_THRESHOLD)
     {
         chunk = mmap(NULL, total_alloc, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
@@ -144,8 +244,11 @@ tlalloc(size_t __size)
 
     else if (tl_heap.main)
     {
-        // first search free list ...
+        // first search the free list
+        void *reused = find_free_chunk(__size);
+        if (reused) return payload(reused);
 
+        // fallback to default behavior
         chunk = sbrk(total_alloc);
         if (chunk == (void *)-1) return NULL;
 
@@ -160,8 +263,11 @@ tlalloc(size_t __size)
 
     else if (tl_heap.dynamic)
     {
-        // first search free list ...
-        
+        // first search the free list
+        void *reused = find_free_chunk(__size);
+        if (reused) return payload(reused);
+
+        // fallback to default behavior
         if (avail(tl_heap.dynamic) < __size) return NULL;
 
         chunk = (mem_chunk_t *)tl_heap.dynamic->top;
@@ -196,34 +302,10 @@ tlfree(void *__ptr)
 
     mem_chunk_free_t *free_chunk = (mem_chunk_free_t *)chunk_meta;
     free_chunk->meta._payload_size &= ((uint32_t)-2); // zero out the in_use bit
+    free_chunk->bk = NULL; free_chunk->fd = NULL; // zero out the pointer fields
+    free_list_insert(free_chunk);
 
-    if (!allocated_arena(chunk_meta))
-    {
-        free_chunk->fd = tl_heap.main->free_head;
-        free_chunk->bk = tl_heap.main->free_tail;
-        
-        tl_heap.main->free_tail = free_chunk;
-
-        if (free_chunk->bk)
-            free_chunk->bk->fd = free_chunk;
-
-        #ifdef TLALLOC_DEBUG
-            printf("FREED MAIN HEAP CHUNK\n");
-        #endif
-    }
-
-    else
-    {
-        free_chunk->fd = tl_heap.dynamic->free_head;
-        free_chunk->bk = tl_heap.dynamic->free_tail;
-
-        tl_heap.dynamic->free_tail = free_chunk;
-
-        if (free_chunk->bk)
-            free_chunk->bk->fd = free_chunk;
-        
-        #ifdef TLALLOC_DEBUG
-            printf("FREED DYNAMIC HEAP CHUNK\n");
-        #endif
-    }
+    #ifdef TLALLOC_DEBUG
+        printf("FREED HEAP CHUNK\n");
+    #endif
 }

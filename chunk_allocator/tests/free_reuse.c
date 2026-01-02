@@ -14,16 +14,16 @@ SampleStruct;
 
 void *thread_func()
 {
-    double *arr = tlalloc(2 * sizeof(double));
+    double *arr = tlalloc(10 * sizeof(double));
     arr[0] = 0.05; arr[1] = 0.3;
 
     printf("arr: %lf, %lf\n", arr[0], arr[1]);
+    tlfree(arr);
 
     SampleStruct *my_struct = tlalloc(sizeof(SampleStruct));
     my_struct->d = 10; my_struct->f = 0.5; my_struct->c[0] = 'a';
-    printf("%d, %f, %s\n", my_struct->d, my_struct->f, my_struct->c);
 
-    tlfree(arr);
+    printf("my_struct: %d, %f, %s\n", my_struct->d, my_struct->f, my_struct->c);
     tlfree(my_struct);
 
     destroy_tl_heap();
@@ -39,13 +39,6 @@ int main(int argc, char *argv[])
     thread_func(NULL);
 
     pthread_join(worker, NULL);
-
-    int *p = tlalloc(50 * 1024 * sizeof(int)); // large alloc
-    
-    p[50 * 1023] = 123;
-    printf("%d\n", p[50 * 1023]);
-    
-    tlfree(p);
 
     return 0;
 }

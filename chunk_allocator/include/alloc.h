@@ -38,7 +38,7 @@ mem_chunk_free_t;
 static __always_inline uint32_t
 payload_size(mem_chunk_t *__metadata) { return __metadata->_payload_size & (~7); }
 
-// Flags
+// Flag retrieval
 static __always_inline bool
 allocated_arena(mem_chunk_t *__metadata) { return __metadata->_payload_size & ((uint32_t)4); }
 
@@ -47,6 +47,13 @@ mmaped(mem_chunk_t *__metadata) { return __metadata->_payload_size & ((uint32_t)
 
 static __always_inline bool
 in_use(mem_chunk_t *__metadata) { return __metadata->_payload_size & ((uint32_t)1); }
+
+// Free list helpers / inserts
+bool
+adjacent(mem_chunk_free_t *__chunk1, mem_chunk_free_t *__chunk2);
+
+void
+merge_free_chunks(mem_chunk_free_t *__left_chunk, mem_chunk_free_t *__right_chunk);
 
 
 //--------------- ARENA ----------------
@@ -76,7 +83,6 @@ typedef struct mem_heap_dynamic_t
     void *top;
 
     mem_chunk_free_t *free_head; // get rid of arena implemented?
-    mem_chunk_free_t *free_tail;
 }
 mem_heap_dynamic_t;
 
@@ -103,7 +109,6 @@ typedef struct mem_heap_main_t
     void *top;
 
     mem_chunk_free_t *free_head;
-    mem_chunk_free_t *free_tail;
 }
 mem_heap_main_t;
 
@@ -128,8 +133,15 @@ init_tl_heap();
 void
 destroy_tl_heap();
 
+void *
+find_free_chunk(size_t __size);
+
+void
+free_list_insert(mem_chunk_free_t *__freed_chunk);
+
 
 #define BRK_THRESHOLD (128 * 1024)
+
 
 void *
 tlalloc(size_t __size);
