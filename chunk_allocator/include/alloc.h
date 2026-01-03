@@ -3,6 +3,7 @@
 #ifndef my_allocator_h
 #define my_allocator_h
 
+#define TLALLOC_DEBUG
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -32,7 +33,7 @@ typedef struct mem_chunk_free_t
 }
 mem_chunk_free_t;
 
-#define MIN_CHUNK_PAYLOAD sizeof(mem_chunk_free_t) // we need the chunk to be able to hold the free metadata after free
+#define MIN_CHUNK_PAYLOAD sizeof(mem_chunk_free_t) - sizeof(mem_chunk_t) // we need the chunk to be able to hold the free metadata after free
 
 // Since we keep 3 lsbs for flags we need to ignore them here
 static __always_inline uint32_t
@@ -133,11 +134,16 @@ init_tl_heap();
 void
 destroy_tl_heap();
 
-void *
+mem_chunk_t *
 find_free_chunk(size_t __size);
 
 void
 free_list_insert(mem_chunk_free_t *__freed_chunk);
+
+#ifdef TLALLOC_DEBUG
+    void
+    print_free_list();
+#endif
 
 
 #define BRK_THRESHOLD (128 * 1024)

@@ -15,16 +15,25 @@ SampleStruct;
 void *thread_func()
 {
     double *arr = tlalloc(10 * sizeof(double));
-    arr[0] = 0.05; arr[1] = 0.3;
-
-    printf("arr: %lf, %lf\n", arr[0], arr[1]);
     tlfree(arr);
+    print_free_list();
+
+    double *arr2 = tlalloc(20 * sizeof(double));
+    print_free_list();
+
+    double *arr3 = tlalloc(5 * sizeof(double));
+    print_free_list();
+
+    tlfree(arr2);
+    print_free_list();
+
+    tlfree(arr3);
+    print_free_list();
 
     SampleStruct *my_struct = tlalloc(sizeof(SampleStruct));
-    my_struct->d = 10; my_struct->f = 0.5; my_struct->c[0] = 'a';
-
-    printf("my_struct: %d, %f, %s\n", my_struct->d, my_struct->f, my_struct->c);
+    print_free_list();
     tlfree(my_struct);
+    print_free_list();
 
     destroy_tl_heap();
     return NULL;
