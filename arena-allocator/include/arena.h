@@ -33,17 +33,17 @@ typedef struct ArenaAllocator
 ArenaAllocator;
 
 
-/* Initializes an arena metadata struct, allocates with brk() syscall when below ARBRK_THRESHOLD, and with mmap() otherwise. */
+/* Initializes an arena metadata struct, allocates mmap() syscall */
 int 
 arcreate(ArenaAllocator *restrict __arena, const size_t __size, ArenaFlags __flags);
 
 /* Destroys an arena, reclaiming allocated region back to the kernel. */
 int
-ardestroy(ArenaAllocator *__arena);
+ardestroy(ArenaAllocator *restrict const __arena);
 
 /* Allocates new object on the arena. */
-void*
-aralloc(ArenaAllocator *const __arena, size_t __size);
+void *
+aralloc(ArenaAllocator *restrict const __arena, size_t __size);
 
 /* Allocates new object on the arena, and aligns the pointer. */
 void *
@@ -51,11 +51,11 @@ aligned_aralloc(ArenaAllocator *restrict const __arena, size_t __alignment, size
 
 /* Marks a new sub-arena beggining. */
 size_t
-armark(ArenaAllocator *const __arena);
+armark(ArenaAllocator *restrict const __arena);
 
 /* Rollbacks to the previous mark point, removing the sub-arena. */
 int
-arrollback(ArenaAllocator *const __arena, size_t __sub_mark);
+arrollback(ArenaAllocator *restrict const __arena, size_t __mark_point);
 
 
 //-------------- HELPERS ---------------

@@ -5,7 +5,7 @@ project(Allocator VERSION 0.5 LANGUAGES C)
 
 add_executable(Allocator
     src/arena.c
-    tests/general_use.c
+    tests/speed.c
 )
 
 
@@ -14,4 +14,4 @@ target_include_directories(Allocator PUBLIC
 )
 
 
-target_compile_options(Allocator PRIVATE -std=gnu11 -g -O0 -Wall -Wextra -Wpedantic)
+target_compile_options(Allocator PRIVATE -std=gnu11 -g -O3 -Wall -Wextra -Wpedantic)
