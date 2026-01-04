@@ -14,7 +14,7 @@ SampleStruct;
 
 void *thread_func()
 {
-    printf("%d\n", sizeof(mem_chunk_t));
+    printf("%lu\n", sizeof(mem_chunk_t));
     double *arr = tlalloc(10 * sizeof(double));
     tlfree(arr);
     print_free_list(); // 80

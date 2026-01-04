@@ -24,7 +24,7 @@ bool
 adjacent(mem_chunk_free_t *__left_chunk, mem_chunk_free_t *__right_chunk)
 {
     #ifdef TLALLOC_DEBUG
-        printf("left_addr: %u | right_addr: %u\n",
+        printf("left_addr: %lu | right_addr: %lu\n",
              (uintptr_t)__left_chunk + sizeof(mem_chunk_t) + payload_size(&__left_chunk->meta), (uintptr_t)__right_chunk);
     #endif
     
@@ -90,6 +90,8 @@ new_dynamic_heap(mem_arena_t *const __arena)
     #endif
 
     return new_heap;
+
+    //mmap returns page aligned pointer so 100% it will be 8 aligned as well
 }
 
 int
@@ -106,6 +108,30 @@ delete_dynamic_heap(mem_heap_dynamic_t *__heap)
 
 
 //-----------  MAIN HEAP ---------------
+
+mem_heap_main_t *
+init_main_heap()
+{
+    void *base = sbrk(0);
+    mem_heap_main_t *heap = sbrk(sizeof(mem_heap_main_t));
+    if (heap == (void *)-1) return NULL;
+
+    heap->base = base;
+    
+    heap->top = align_address((uint8_t *)heap + sizeof(mem_heap_main_t), 8);
+    if (brk(heap->top) != 0) return NULL;
+
+    heap->free_head = NULL;
+
+    #ifdef TLALLOC_DEBUG
+        printf("INITIALIZED MAIN HEAP\n");
+    #endif
+
+    return heap;
+
+    // base | heap_metadata | padding? | top aligned to 8 bytes for all allocs -> if the metadata header and size are aligned to 8 everything will be
+}
+
 
 int
 delete_main_heap(mem_heap_main_t *__heap)
@@ -130,13 +156,7 @@ init_tl_heap()
 
     if (tid == pid) // main thread
     {
-        static mem_heap_main_t main_heap_meta;
-        main_heap_meta.base = sbrk(0);
-        main_heap_meta.top = main_heap_meta.base;
-
-        main_heap_meta.free_head = NULL;
-
-        tl_heap.main = &main_heap_meta;
+        tl_heap.main = init_main_heap();
         tl_heap.dynamic = NULL;
     }
 
@@ -183,8 +203,8 @@ find_free_chunk(size_t __size)
             {
                 // build the small chunk
                 mem_chunk_free_t *div_chunk = (mem_chunk_free_t *)((uint8_t *)current + sizeof(mem_chunk_t) + __size);
-                uint8_t flags = current->meta._payload_size & 7;
-                div_chunk->meta._payload_size = (payload_size(&current->meta) - __size - sizeof(mem_chunk_t)) | flags;
+                uint8_t chunk_flags = flags(&current->meta);
+                div_chunk->meta._payload_size = (payload_size(&current->meta) - __size - sizeof(mem_chunk_t)) | chunk_flags;
 
                 if (current->bk)
                     current->bk->fd = div_chunk;
@@ -195,7 +215,7 @@ find_free_chunk(size_t __size)
                 div_chunk->bk = current->bk;
                 div_chunk->fd = current->fd;
 
-                current->meta._payload_size = __size | flags | 1; // retain flags and set in-use bit
+                current->meta._payload_size = __size | chunk_flags | 1; // retain flags and set in-use bit
 
                 if (current == *head)
                     *head = div_chunk;
@@ -283,7 +303,7 @@ free_list_insert(mem_chunk_free_t *__freed_chunk)
         else if (tl_heap.dynamic) head = tl_heap.dynamic->free_head;
 
         for (current = head; current; current = current->fd)
-            printf("[chunk] size: %d, fd: %p, bk: %p\n", payload_size(&current->meta), current->fd, current->bk);
+            printf("[chunk] size: %u, fd: %p, bk: %p\n", payload_size(&current->meta), (void *)current->fd, (void *)current->bk);
     }
 #endif
 

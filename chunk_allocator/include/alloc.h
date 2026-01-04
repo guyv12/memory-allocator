@@ -14,10 +14,9 @@
 
 //--------- CHUNK METADATA -------------
 
-typedef struct mem_chunk_t
+typedef struct __attribute__((aligned(8))) mem_chunk_t // it needs to be aligned to 8 as the size to keep everything nice but there is a need to align the heaps too
 {
     uint32_t _payload_size; // all chunks payload size will be a multiple of 8 -> 3LSb's can hold data
-    uint32_t padding; // header size has to be divisible by 8 cuz if 
 }
 mem_chunk_t;
 
@@ -38,9 +37,12 @@ mem_chunk_free_t;
 
 // Since we keep 3 lsbs for flags we need to ignore them here
 static __always_inline uint32_t
-payload_size(mem_chunk_t *__metadata) { return __metadata->_payload_size & (~7); }
+payload_size(mem_chunk_t *__metadata) { return __metadata->_payload_size & (uint32_t)(~7); }
 
 // Flag retrieval
+static __always_inline uint8_t
+flags(mem_chunk_t *__metadata) { return __metadata->_payload_size & (uint32_t)7; }
+
 static __always_inline bool
 allocated_arena(mem_chunk_t *__metadata) { return __metadata->_payload_size & ((uint32_t)4); }
 
