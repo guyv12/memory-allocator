@@ -14,26 +14,27 @@ SampleStruct;
 
 void *thread_func()
 {
+    printf("%d\n", sizeof(mem_chunk_t));
     double *arr = tlalloc(10 * sizeof(double));
     tlfree(arr);
-    print_free_list();
+    print_free_list(); // 80
 
     double *arr2 = tlalloc(20 * sizeof(double));
-    print_free_list();
+    print_free_list(); // 80
 
     double *arr3 = tlalloc(5 * sizeof(double));
-    print_free_list();
+    print_free_list(); // 32 (80 - 40 - 8)
 
     tlfree(arr2);
-    print_free_list();
+    print_free_list(); // 200 (32 + 8 + 160)
 
     tlfree(arr3);
-    print_free_list();
+    print_free_list(); // 248 (40 + 8 + 200)
 
     SampleStruct *my_struct = tlalloc(sizeof(SampleStruct));
-    print_free_list();
+    print_free_list(); // 216 (248 - 24 - 8)
     tlfree(my_struct);
-    print_free_list();
+    print_free_list(); // 248
 
     destroy_tl_heap();
     return NULL;

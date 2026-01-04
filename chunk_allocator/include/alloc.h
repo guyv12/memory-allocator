@@ -17,6 +17,7 @@
 typedef struct mem_chunk_t
 {
     uint32_t _payload_size; // all chunks payload size will be a multiple of 8 -> 3LSb's can hold data
+    uint32_t padding; // header size has to be divisible by 8 cuz if 
 }
 mem_chunk_t;
 
@@ -112,6 +113,9 @@ typedef struct mem_heap_main_t
     mem_chunk_free_t *free_head;
 }
 mem_heap_main_t;
+
+int
+delete_main_heap(mem_heap_main_t *__heap);
 
 
 //----------- HEAP INFO ---------------

@@ -23,6 +23,11 @@ __thread mem_heap_info_t tl_heap;
 bool
 adjacent(mem_chunk_free_t *__left_chunk, mem_chunk_free_t *__right_chunk)
 {
+    #ifdef TLALLOC_DEBUG
+        printf("left_addr: %u | right_addr: %u\n",
+             (uintptr_t)__left_chunk + sizeof(mem_chunk_t) + payload_size(&__left_chunk->meta), (uintptr_t)__right_chunk);
+    #endif
+    
     return
     (
         (uintptr_t)__left_chunk + sizeof(mem_chunk_t) + payload_size(&__left_chunk->meta)
@@ -37,7 +42,7 @@ merge_free_chunks(mem_chunk_free_t *__left_chunk, mem_chunk_free_t *__right_chun
 {      
     __left_chunk->meta._payload_size = payload_size(&__left_chunk->meta) +
                                        payload_size(&__right_chunk->meta) +
-                                       sizeof(mem_chunk_free_t); // the mid-header
+                                       sizeof(mem_chunk_t); // the mid-header
     __left_chunk->meta._payload_size |= (__right_chunk->meta._payload_size & 7); // keep the flags (both SHOULD have the same - so or with this untouched)
     
     __left_chunk->fd = __right_chunk->fd;
@@ -100,6 +105,21 @@ delete_dynamic_heap(mem_heap_dynamic_t *__heap)
 }
 
 
+//-----------  MAIN HEAP ---------------
+
+int
+delete_main_heap(mem_heap_main_t *__heap)
+{
+    brk(__heap->base);
+
+    #ifdef TLALLOC_DEBUG
+        printf("DELETED MAIN HEAP\n");
+    #endif
+
+    return 0;
+}
+
+
 //-------------- ALLOCS ----------------
 
 void
@@ -135,10 +155,11 @@ init_tl_heap()
 void
 destroy_tl_heap()
 {
-    if (tl_heap.dynamic)
-    {
+    if (tl_heap.main)
+        delete_main_heap(tl_heap.main);
+
+    else if (tl_heap.dynamic)
         delete_dynamic_heap(tl_heap.dynamic);
-    }
 
     #ifdef TLALLOC_DEBUG
         printf("DESTROYED THREAD LOCAL HEAP\n");
@@ -161,9 +182,9 @@ find_free_chunk(size_t __size)
             if (payload_size(&current->meta) - __size >= MIN_CHUNK_PAYLOAD + sizeof(mem_chunk_t))
             {
                 // build the small chunk
-                mem_chunk_free_t *div_chunk = (mem_chunk_free_t *)((uint8_t *)current + __size);
+                mem_chunk_free_t *div_chunk = (mem_chunk_free_t *)((uint8_t *)current + sizeof(mem_chunk_t) + __size);
                 uint8_t flags = current->meta._payload_size & 7;
-                div_chunk->meta._payload_size = payload_size(&current->meta) - __size | flags;
+                div_chunk->meta._payload_size = (payload_size(&current->meta) - __size - sizeof(mem_chunk_t)) | flags;
 
                 if (current->bk)
                     current->bk->fd = div_chunk;
@@ -213,19 +234,19 @@ find_free_chunk(size_t __size)
 void
 free_list_insert(mem_chunk_free_t *__freed_chunk)
 {
-    mem_chunk_free_t *next;
+    mem_chunk_free_t **head;
     if (tl_heap.main) 
     {
-        next = tl_heap.main->free_head;
-        if (!next) { tl_heap.main->free_head = __freed_chunk; return; }
+        head = &tl_heap.main->free_head;
+        if (!(*head)) { tl_heap.main->free_head = __freed_chunk; return; }
     }
     else if (tl_heap.dynamic)
     {
-        next = tl_heap.dynamic->free_head;
-        if (!next) { tl_heap.dynamic->free_head = __freed_chunk; return; }
+        head = &tl_heap.dynamic->free_head;
+        if (!(*head)) { tl_heap.dynamic->free_head = __freed_chunk; return; }
     }
 
-    mem_chunk_free_t *prev = NULL;
+    mem_chunk_free_t *prev = NULL, *next = *head;
 
     // I want to know that prev is the chunk on the left of __freed_chunk
     while((uintptr_t)next < (uintptr_t)__freed_chunk && next)
@@ -234,7 +255,6 @@ free_list_insert(mem_chunk_free_t *__freed_chunk)
         next = next->fd;
     }
 
-    // we know that bk exists cuz we resolve empty list elsewhere
     __freed_chunk->bk = prev;
     __freed_chunk->fd = next;
 
@@ -243,6 +263,8 @@ free_list_insert(mem_chunk_free_t *__freed_chunk)
         prev->fd = __freed_chunk;
         if (adjacent(prev, __freed_chunk)) merge_free_chunks(prev, __freed_chunk);
     }
+    else
+        *head = __freed_chunk;
 
     if (next)
     {
