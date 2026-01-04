@@ -90,7 +90,7 @@ typedef struct mem_heap_dynamic_t
 }
 mem_heap_dynamic_t;
 
-#define DYNAMIC_HEAP_SIZE 64 * 1024 * 1024
+#define DYNAMIC_HEAP_SIZE 64 * 1024 * 1024 // 64MB
 
 static __always_inline void *
 memory(mem_heap_dynamic_t *__heap) { return (void *)(__heap + 1); } // the memory after heap metadata
@@ -134,6 +134,8 @@ mem_heap_info_t;
 
 extern __thread mem_heap_info_t tl_heap;
 
+#define MAX_ALLOC 256 * 1024 * 1024 // 256MB
+
 void
 init_tl_heap();
 
@@ -152,7 +154,7 @@ free_list_insert(mem_chunk_free_t *__freed_chunk);
 #endif
 
 
-#define BRK_THRESHOLD (128 * 1024)
+#define BRK_THRESHOLD (128 * 1024) // 128kB
 
 
 void *

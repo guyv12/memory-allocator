@@ -311,6 +311,8 @@ free_list_insert(mem_chunk_free_t *__freed_chunk)
 void *
 tlalloc(size_t __size)
 {
+    if (__size > MAX_ALLOC) return NULL;
+
     if (tl_heap.main == NULL && tl_heap.dynamic == NULL)
         init_tl_heap();
 

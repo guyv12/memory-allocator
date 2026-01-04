@@ -26,6 +26,27 @@ void *thread_func()
     tlfree(arr);
     tlfree(my_struct);
 
+    const int n_structs = 10;
+    SampleStruct **structs = tlalloc(n_structs * sizeof(SampleStruct *));
+    for (int i = 0; i < n_structs; i++)
+        structs[i] = tlalloc(n_structs * sizeof(SampleStruct));
+
+    for (int i = 0; i < n_structs; i++)
+    {
+        for (int j = 0; j < n_structs; j++)
+        {
+            structs[i][j].d = i;
+            structs[i][j].f = i + 0.05;
+            structs[i][j].c[0] = 'a';
+        
+            printf("%d, %f, %s\n", structs[i][j].d, structs[i][j].f, structs[i][j].c);
+        }
+        printf("\n");
+    }
+
+    tlfree(*structs);
+    tlfree(structs);
+
     destroy_tl_heap();
     return NULL;
 }
