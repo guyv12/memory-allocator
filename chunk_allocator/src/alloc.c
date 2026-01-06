@@ -281,7 +281,11 @@ free_list_insert(mem_chunk_free_t *__freed_chunk)
     if (prev)
     {
         prev->fd = __freed_chunk;
-        if (adjacent(prev, __freed_chunk)) merge_free_chunks(prev, __freed_chunk);
+        if (adjacent(prev, __freed_chunk)) 
+        {
+            merge_free_chunks(prev, __freed_chunk);
+            __freed_chunk = prev;
+        }
     }
     else
         *head = __freed_chunk;
@@ -289,7 +293,8 @@ free_list_insert(mem_chunk_free_t *__freed_chunk)
     if (next)
     {
         next->bk = __freed_chunk;
-        if (adjacent(__freed_chunk, next)) merge_free_chunks(__freed_chunk, next);
+        if (adjacent(__freed_chunk, next))
+            merge_free_chunks(__freed_chunk, next);
     }
 }
 
