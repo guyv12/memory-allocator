@@ -39,8 +39,7 @@ int
 ardestroy(ArenaAllocator *restrict const __arena)
 /* @Return 0 on success -1 on failure */
 {
-    munmap(__arena->mem, __arena->capacity);
-    return 0;
+    return munmap(__arena->mem, __arena->capacity);
 }
 
 
