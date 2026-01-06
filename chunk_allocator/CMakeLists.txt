@@ -5,7 +5,7 @@ project(Allocator VERSION 0.5 LANGUAGES C)
 
 add_executable(Allocator
     src/alloc.c
-    tests/free_reuse.c
+    tests/general_use.c
 )
 
 

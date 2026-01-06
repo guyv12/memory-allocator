@@ -27,10 +27,11 @@ void *thread_func()
 
     for (int i = 0; i < N; i++)
     {
-        if (i >= 9917)
-        {
-            print_free_list();
-        }
+        // if (i >= 9917)
+        // {
+        //     print_free_list();
+        // }
+        
         int result = rand() % 100;
         printf("i: %d choice: %d\n", i, result);
         if (result < 50)
