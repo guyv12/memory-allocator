@@ -141,7 +141,7 @@ grow_arena(ArenaAllocator *restrict const __arena, size_t __new_elem_size)
         if (new_mapping == MAP_FAILED) return -1;
     #else
         size_t old_capacity = __arena->capacity;    
-        void *new_mapping = mmap(NULL, new_capacity PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+        void *new_mapping = mmap(NULL, new_capacity, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         if (new_mapping == MAP_FAILED) return -1;
         memcpy(new_mapping, __arena->mem, __arena->size);
         munmap(__arena->mem, old_capacity); // deactivate old
