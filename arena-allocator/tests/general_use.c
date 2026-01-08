@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 {
     ArenaAllocator Arena;
 
-    arcreate(&Arena, 20, ARENA_GROW);
+    arcreate(&Arena, 20, 0);
 
     SampleStruct *my_struct = (SampleStruct *)aralloc(&Arena, sizeof(SampleStruct));
     my_struct->d = 10; my_struct->f = 0.5; my_struct->c[0] = 'a';

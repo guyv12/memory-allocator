@@ -12,8 +12,7 @@
 
 typedef enum ArenaFlags
 {
-    ARENA_GROW          = 1 << 0, // enable exponential growth
-    ARENA_SIZE_ALIGN    = 1 << 1, // align capacity to the next power of 2
+    ARENA_SIZE_ALIGN    = 1 << 0, // align capacity to the next power of 2
 }
 ArenaFlags;
 
@@ -62,9 +61,6 @@ arrollback(ArenaAllocator *restrict const __arena, size_t __mark_point);
 
 size_t 
 next2_power(size_t x);
-
-int
-grow_arena(ArenaAllocator *restrict const __arena, size_t __new_elem_size);
 
 static inline void *
 align_address(void *__addr, size_t __alignment)
