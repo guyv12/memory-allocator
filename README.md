@@ -3,7 +3,7 @@
 Simple memory allocators for research and learning purposes
 ---
 
-## Allocatoors
+## Allocators
 
 ### 1. Chunk Allocator
 GLIBC Inspired, focusing on thread local heaps, and on minimizing external fragmentation.
