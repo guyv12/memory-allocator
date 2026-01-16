@@ -18,3 +18,20 @@ Basic faster allocations, works similar to a regular stack
 ---
 
 ## How to run
+
+### Requirements
+- C compiler (GCC or Clang)
+- CMake 3.10 or newer
+- Linux or Unix-like operating system (uses `brk` and `mmap`)
+
+### Build steps
+In the chosen allocator directory run:
+
+```sh
+mkdir build
+cd build
+cmake ..
+cmake --build .
+```
+
+Than run the binary in the build file.
